@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { addUser, getUsers } from "../../lib/users";
 
 export async function POST(request: NextRequest) {
   // Check if user is authenticated as admin
@@ -13,14 +12,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Verify admin password from environment
-  const adminPassword = process.env.ADMIN_PASSWORD;
-  if (!adminPassword) {
-    return NextResponse.json(
-      { error: "Server auth is not configured" },
-      { status: 500 }
-    );
-  }
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
   try {
     const { username, password } = await request.json();
@@ -46,23 +38,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Add the new user
-    addUser(username, password);
-
-    return NextResponse.json({
-      ok: true,
-      message: `User "${username}" registered successfully`,
+    // Register user via backend API
+    const registerRes = await fetch(`${apiBaseUrl}/register-user`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
     });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Registration failed";
-    
-    if (message.includes("already exists")) {
+
+    if (!registerRes.ok) {
+      const errorData = await registerRes.json().catch(() => ({}));
       return NextResponse.json(
-        { error: message },
-        { status: 409 }
+        { error: errorData.detail || "Registration failed" },
+        { status: registerRes.status }
       );
     }
 
+    const data = await registerRes.json();
+    return NextResponse.json({
+      ok: true,
+      message: data.message || `User "${username}" registered successfully`,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Registration failed";
     return NextResponse.json(
       { error: message },
       { status: 500 }
@@ -81,13 +78,29 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const users = getUsers();
-  
-  // Return usernames only (no passwords)
-  return NextResponse.json({
-    users: users.map(u => ({
-      username: u.username,
-      createdAt: u.createdAt,
-    })),
-  });
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+
+  try {
+    const usersRes = await fetch(`${apiBaseUrl}/users`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!usersRes.ok) {
+      return NextResponse.json(
+        { error: "Failed to fetch users" },
+        { status: usersRes.status }
+      );
+    }
+
+    const data = await usersRes.json();
+    return NextResponse.json({
+      users: data.users || [],
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Failed to fetch users" },
+      { status: 500 }
+    );
+  }
 }
