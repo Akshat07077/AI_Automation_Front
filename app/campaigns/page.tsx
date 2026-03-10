@@ -31,37 +31,16 @@ export default function CampaignsPage() {
       setLoading(true);
       try {
         const summary = await fetchLeadsSummary();
-        // For now, create mock campaigns based on summary data
-        // In the future, this would come from a campaigns API
+        // For now, since campaigns API isn't built into backend yet, 
+        // we create a single "Default Campaign" populated by the global leads summary.
         setCampaigns([
           {
-            name: "AI Startups",
-            leads: summary.total || 37,
-            sent: summary.sent || 58,
-            replies: summary.replied || 12,
+            name: "Default Campaign",
+            leads: summary.total || 0,
+            sent: summary.sent || 0,
+            replies: summary.replied || 0,
             replyRate: summary.sent > 0 ? Number(((summary.replied / summary.sent) * 100).toFixed(2)) : 0,
-          },
-          {
-            name: "SaaS Companies",
-            leads: 33,
-            sent: 40,
-            replies: 15,
-            replyRate: 7.8,
-          },
-          {
-            name: "Fintech Prospects",
-            leads: 22,
-            sent: 20,
-            replies: 10,
-            replyRate: 8.11,
-          },
-          {
-            name: "HealthTech Leads",
-            leads: 33,
-            sent: 28,
-            replies: 6,
-            replyRate: 7.35,
-          },
+          }
         ]);
       } catch (err) {
         console.error("Failed to load campaigns:", err);

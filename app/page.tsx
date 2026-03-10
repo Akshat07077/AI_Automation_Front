@@ -122,9 +122,9 @@ export default function DashboardPage() {
   const [dailyLimit] = useState(100);
   const [emailsRemaining, setEmailsRemaining] = useState(42);
 
-  // Mock 7-day data (will be replaced with real data later)
-  const emailsSentData = [1, 1, 3, 7, 4, 6, 1];
-  const repliesReceivedData = [0, 0, 1, 2, 1, 1, 0];
+  // Fallback data for charts until history API is implemented
+  const emailsSentData = stats ? [0, 0, 0, 0, 0, 0, stats.sent_today || 0] : [0, 0, 0, 0, 0, 0, 0];
+  const repliesReceivedData = stats ? [0, 0, 0, 0, 0, 0, stats.replies_today || 0] : [0, 0, 0, 0, 0, 0, 0];
   const days = getLast7DaysData();
 
   const loadStats = async () => {
