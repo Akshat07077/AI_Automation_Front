@@ -39,7 +39,7 @@ export default function CampaignsPage() {
             leads: summary.total || 37,
             sent: summary.sent || 58,
             replies: summary.replied || 12,
-            replyRate: summary.sent > 0 ? ((summary.replied / summary.sent) * 100).toFixed(2) : 0,
+            replyRate: summary.sent > 0 ? Number(((summary.replied / summary.sent) * 100).toFixed(2)) : 0,
           },
           {
             name: "SaaS Companies",
