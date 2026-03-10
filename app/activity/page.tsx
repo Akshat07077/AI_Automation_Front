@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 
 type ActivityEntry = {
   id: string;
@@ -155,75 +154,60 @@ export default function ActivityLogPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-4 sm:mb-6 lg:mb-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Activity Log</h1>
-              <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">
-                Complete history of all system events and activities
-              </p>
-            </div>
-            <Link
-              href="/"
-              className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-            >
-              ← Back
-            </Link>
-          </div>
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">Activity</h1>
         </div>
 
         {/* Summary Cards */}
         {summary && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-4 sm:mb-6 lg:mb-8">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
-              <div className="text-xs sm:text-sm text-gray-600 mb-1">Emails Sent</div>
-              <div className="text-xl sm:text-2xl font-bold text-gray-900">{summary.sent}</div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="text-sm text-gray-600 mb-1">Emails Sent</div>
+              <div className="text-2xl font-bold text-gray-900">{summary.sent}</div>
               <div className="text-xs text-gray-500 mt-1">Last 7 days</div>
             </div>
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
-              <div className="text-xs sm:text-sm text-gray-600 mb-1">Follow-Ups</div>
-              <div className="text-xl sm:text-2xl font-bold text-gray-900">{summary.follow_ups}</div>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="text-sm text-gray-600 mb-1">Follow-Ups</div>
+              <div className="text-2xl font-bold text-gray-900">{summary.follow_ups}</div>
               <div className="text-xs text-gray-500 mt-1">Last 7 days</div>
             </div>
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
-              <div className="text-xs sm:text-sm text-gray-600 mb-1">Replies</div>
-              <div className="text-xl sm:text-2xl font-bold text-green-600">{summary.replied}</div>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="text-sm text-gray-600 mb-1">Replies</div>
+              <div className="text-2xl font-bold text-green-600">{summary.replied}</div>
               <div className="text-xs text-gray-500 mt-1">Last 7 days</div>
             </div>
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
-              <div className="text-xs sm:text-sm text-gray-600 mb-1">Bounces</div>
-              <div className="text-xl sm:text-2xl font-bold text-red-600">{summary.bounced}</div>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="text-sm text-gray-600 mb-1">Bounces</div>
+              <div className="text-2xl font-bold text-red-600">{summary.bounced}</div>
               <div className="text-xs text-gray-500 mt-1">Last 7 days</div>
             </div>
           </div>
         )}
 
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4 mb-4 sm:mb-6">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-0">
-            <div className="flex items-center gap-2 sm:gap-4">
-              <select
-                value={eventFilter}
-                onChange={(e) => {
-                  setEventFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="flex-1 sm:flex-none border border-gray-300 rounded-md px-3 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="all">All Events</option>
-                <option value="sent">Emails Sent</option>
-                <option value="follow_up">Follow-Ups</option>
-                <option value="replied">Replies</option>
-                <option value="bounce">Bounces</option>
-              </select>
-            </div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+          <div className="flex items-center justify-between">
+            <select
+              value={eventFilter}
+              onChange={(e) => {
+                setEventFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="border border-gray-300 rounded-md px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Events</option>
+              <option value="sent">Emails Sent</option>
+              <option value="follow_up">Follow-Ups</option>
+              <option value="replied">Replies</option>
+              <option value="bounce">Bounces</option>
+            </select>
             <button
               onClick={() => loadActivityLog()}
               disabled={loading}
-              className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50 px-2 py-1 rounded hover:bg-blue-50"
+              className="text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50 px-4 py-2 rounded hover:bg-blue-50"
             >
               {loading ? "Loading..." : "Refresh"}
             </button>
@@ -237,22 +221,22 @@ export default function ActivityLogPage() {
               {entries.map((entry) => (
                 <div
                   key={entry.id}
-                  className={`p-3 sm:p-4 lg:p-6 border-l-4 ${getActivityColor(entry.type)} hover:bg-opacity-80 transition-colors`}
+                  className={`p-6 border-l-4 ${getActivityColor(entry.type)} hover:bg-opacity-80 transition-colors`}
                 >
-                  <div className="flex items-start gap-2 sm:gap-3 lg:gap-4">
+                  <div className="flex items-start gap-4">
                     <div className="flex-shrink-0">
                       {getActivityIcon(entry.type)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-0">
-                        <h3 className="text-xs sm:text-sm font-semibold text-gray-900">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-semibold text-gray-900">
                           {entry.title}
                         </h3>
                         <span className="text-xs text-gray-500">
                           {formatTime(entry.timestamp)}
                         </span>
                       </div>
-                      <p className="mt-1 text-xs sm:text-sm text-gray-600">
+                      <p className="mt-1 text-sm text-gray-600">
                         {entry.description}
                       </p>
                       {entry.email_subject && (
@@ -261,7 +245,7 @@ export default function ActivityLogPage() {
                         </div>
                       )}
                       {entry.lead_founder_name && (
-                        <div className="mt-2 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs text-gray-500">
+                        <div className="mt-2 flex items-center gap-4 text-xs text-gray-500">
                           <span>
                             <span className="font-medium">Founder:</span> {entry.lead_founder_name}
                           </span>
@@ -273,9 +257,6 @@ export default function ActivityLogPage() {
                           </span>
                         </div>
                       )}
-                      <div className="mt-2 text-xs text-gray-400">
-                        {new Date(entry.timestamp).toLocaleString()}
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -290,21 +271,21 @@ export default function ActivityLogPage() {
 
         {/* Pagination */}
         {entries.length > 0 && (
-          <div className="mt-4 sm:mt-6 flex items-center justify-between">
+          <div className="mt-6 flex items-center justify-between">
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1 || loading}
-              className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Previous
             </button>
-            <span className="text-xs sm:text-sm text-gray-600">
+            <span className="text-sm text-gray-600">
               Page {currentPage}
             </span>
             <button
               onClick={() => setCurrentPage((p) => p + 1)}
               disabled={entries.length < 50 || loading}
-              className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Next
             </button>

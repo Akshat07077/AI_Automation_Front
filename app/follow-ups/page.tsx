@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 
 type FollowUpLead = {
   id: string;
@@ -19,6 +18,27 @@ type FollowUpLead = {
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
+// Helper function to create fetch with timeout
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeout: number = 20000): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(`Request timeout: ${url} took longer than ${timeout}ms`);
+    }
+    throw error;
+  }
+}
+
 async function fetchFollowUps(
   page: number = 1,
   status: string = "ready"
@@ -29,12 +49,20 @@ async function fetchFollowUps(
     status: status,
   });
 
-  const res = await fetch(`${API_BASE}/follow-ups?${params}`);
-  if (!res.ok) {
-    throw new Error("Failed to load follow-ups");
+  try {
+    const res = await fetchWithTimeout(`${API_BASE}/follow-ups?${params}`, {}, 20000);
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`Failed to load follow-ups: ${res.status} ${res.statusText}. ${errorText}`);
+    }
+    const data = await res.json();
+    return { leads: data.leads, total: data.total };
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("timeout")) {
+      throw new Error(`Request to ${API_BASE}/follow-ups timed out. The backend may be slow or unresponsive.`);
+    }
+    throw error;
   }
-  const data = await res.json();
-  return { leads: data.leads, total: data.total };
 }
 
 async function sendFollowUp(leadId: string): Promise<string> {
@@ -74,8 +102,12 @@ export default function FollowUpsPage() {
     try {
       const data = await fetchFollowUps(1, statusFilter);
       setLeads(data.leads);
+      // Log for debugging
+      console.log(`Loaded ${data.leads.length} leads (total: ${data.total}) with filter: ${statusFilter}`);
     } catch (err) {
-      setActionError(`Failed to load follow-ups: ${(err as Error).message}`);
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      setActionError(`Failed to load follow-ups: ${errorMessage}`);
+      console.error("Error loading follow-ups:", err);
     } finally {
       setLoading(false);
     }
@@ -157,34 +189,27 @@ export default function FollowUpsPage() {
   ).length;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-4 sm:mb-6 lg:mb-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Follow-Ups</h1>
-              <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">
-                Manage and send follow-up emails to leads who haven't replied
-              </p>
-            </div>
-            <Link
-              href="/"
-              className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-            >
-              ← Back
-            </Link>
-          </div>
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">Follow-Ups</h1>
+          <p className="mt-2 text-sm text-gray-600">
+            Manage and send follow-up emails to leads who haven't replied
+          </p>
+          <p className="mt-1 text-xs text-gray-500">
+            Note: Only leads with status "sent" appear here. Send emails from Dashboard first.
+          </p>
         </div>
 
         {/* Action Bar */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4 mb-4 sm:mb-6">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-0">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="border border-gray-300 rounded-md px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="ready">Due Now ({readyCount})</option>
                 <option value="pending">Scheduled</option>
@@ -193,7 +218,7 @@ export default function FollowUpsPage() {
               <button
                 onClick={handleProcessAll}
                 disabled={loading}
-                className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-md text-xs sm:text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
               >
                 Process All Due
               </button>
@@ -201,7 +226,7 @@ export default function FollowUpsPage() {
             <button
               onClick={loadFollowUps}
               disabled={loading}
-              className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50 px-2 py-1 rounded hover:bg-blue-50"
+              className="text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50 px-4 py-2 rounded hover:bg-blue-50"
             >
               {loading ? "Loading..." : "Refresh"}
             </button>
@@ -310,6 +335,10 @@ export default function FollowUpsPage() {
                 ? "Loading follow-ups..."
                 : statusFilter === "ready"
                 ? "No follow-ups due at the moment."
+                : statusFilter === "pending"
+                ? "No scheduled follow-ups found."
+                : statusFilter === "all"
+                ? "No sent leads found. Make sure you have sent emails to leads first."
                 : "No leads found."}
             </div>
           )}
