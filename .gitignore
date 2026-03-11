@@ -9,6 +9,7 @@
 # Next.js
 /.next/
 /out/
+.next
 
 # Production
 /build
@@ -46,3 +47,7 @@ Thumbs.db
 
 # User data (sensitive)
 /data
+
+# Cache
+.cache
+.eslintcache

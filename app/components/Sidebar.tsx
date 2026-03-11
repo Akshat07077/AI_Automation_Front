@@ -5,7 +5,12 @@ import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export default function Sidebar() {
+interface SidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
@@ -65,54 +70,81 @@ export default function Sidebar() {
   };
 
   return (
-    <div className="w-64 bg-[#1e3a5f] min-h-screen flex flex-col">
-      {/* Logo */}
-      <div className="p-6 border-b border-[#2a4a6f]">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-lg flex items-center justify-center flex-shrink-0">
-            <span className="text-white font-bold text-lg">A</span>
+    <>
+      {/* Mobile Overlay */}
+      <div 
+        className={`fixed inset-0 bg-black/50 transition-opacity z-40 lg:hidden ${
+          isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+        onClick={onClose}
+      />
+
+      {/* Sidebar Container */}
+      <div 
+        className={`fixed inset-y-0 left-0 bg-[#1e3a5f] w-64 transform transition-transform duration-300 ease-in-out z-50 lg:translate-x-0 lg:static lg:inset-auto ${
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        } flex flex-col h-full`}
+      >
+        {/* Logo */}
+        <div className="p-6 border-b border-[#2a4a6f] flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-lg flex items-center justify-center flex-shrink-0">
+              <span className="text-white font-bold text-lg">A</span>
+            </div>
+            <h1 className="text-white font-bold text-xl">Alsthet</h1>
           </div>
-          <h1 className="text-white font-bold text-xl">Alsthet</h1>
+          {/* Close button for mobile */}
+          <button 
+            onClick={onClose}
+            className="lg:hidden text-white p-1 hover:bg-[#2a4a6f] rounded-lg"
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 p-4 overflow-y-auto">
+          <ul className="space-y-2">
+            {navItems.map((item) => {
+              const active = isActive(item.href);
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    onClick={() => {
+                      if (window.innerWidth < 1024) onClose();
+                    }}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                      active
+                        ? "bg-[#3b5f8f] text-white"
+                        : "text-[#b8c5d6] hover:bg-[#2a4a6f] hover:text-white"
+                    }`}
+                  >
+                    {item.icon}
+                    <span className="font-medium">{item.label}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+
+        {/* Logout */}
+        <div className="p-4 border-t border-[#2a4a6f]">
+          <button
+            onClick={handleLogout}
+            disabled={loggingOut}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-[#b8c5d6] hover:bg-[#2a4a6f] hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            <span className="font-medium">{loggingOut ? "Logging out..." : "Logout"}</span>
+          </button>
         </div>
       </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 p-4">
-        <ul className="space-y-2">
-          {navItems.map((item) => {
-            const active = isActive(item.href);
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    active
-                      ? "bg-[#3b5f8f] text-white"
-                      : "text-[#b8c5d6] hover:bg-[#2a4a6f] hover:text-white"
-                  }`}
-                >
-                  {item.icon}
-                  <span className="font-medium">{item.label}</span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
-
-      {/* Logout */}
-      <div className="p-4 border-t border-[#2a4a6f]">
-        <button
-          onClick={handleLogout}
-          disabled={loggingOut}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-[#b8c5d6] hover:bg-[#2a4a6f] hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
-          <span className="font-medium">{loggingOut ? "Logging out..." : "Logout"}</span>
-        </button>
-      </div>
-    </div>
+    </>
   );
 }
