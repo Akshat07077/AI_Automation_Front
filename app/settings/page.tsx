@@ -13,10 +13,13 @@ export default function SettingsPage() {
     is_connected: boolean;
     email: string | null;
     sheet_id: string | null;
+    daily_send_limit: number;
+    delay_between_emails_seconds: number;
   } | null>(null);
   
   const [sheets, setSheets] = useState<{id: string, name: string}[]>([]);
   const [loadingGoogle, setLoadingGoogle] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const fetchGoogleStatus = async () => {
@@ -26,6 +29,8 @@ export default function SettingsPage() {
         if (res.ok) {
           const data = await res.json();
           setGoogleStatus(data);
+          setDailyLimit(data.daily_send_limit || 25);
+          setMinDelay(data.delay_between_emails_seconds || 60);
           
           if (data.is_connected) {
             const sheetsRes = await fetch(`${API_BASE}/google/sheets`);
@@ -42,17 +47,30 @@ export default function SettingsPage() {
       }
     };
     
-    // Check if we just returned from OAuth callback
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get("google_auth_success")) {
-        // Strip the query param to clean up URL
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
-    }
-    
     fetchGoogleStatus();
   }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+      const res = await fetch(`${API_BASE}/users/me/settings`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          daily_send_limit: dailyLimit,
+          delay_between_emails_seconds: minDelay
+        })
+      });
+      if (res.ok) {
+        alert("Settings saved successfully!");
+      }
+    } catch (err) {
+      console.error("Failed to save settings", err);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleSelectSheet = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newSheetId = e.target.value;
@@ -83,10 +101,10 @@ export default function SettingsPage() {
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-6">
           
-          {/* Google Integration */}
+          {/* Email Integration (Gmail) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Google Integration
+              Email Integration (Gmail API)
             </label>
             <div className="bg-gray-50 p-4 rounded-md border border-gray-200 space-y-4">
               {loadingGoogle ? (
@@ -95,14 +113,14 @@ export default function SettingsPage() {
                 <>
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-sm font-medium text-gray-900">Connected</div>
+                      <div className="text-sm font-medium text-green-600">Gmail Connected</div>
                       <div className="text-xs text-gray-500">{googleStatus.email}</div>
                     </div>
                     <a 
                       href={`${API_BASE}/auth/google`}
-                      className="text-sm text-blue-600 hover:text-blue-800"
+                      className="px-3 py-1 bg-white border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50"
                     >
-                      Reconnect
+                      Reconnect Gmail
                     </a>
                   </div>
                   
@@ -127,13 +145,13 @@ export default function SettingsPage() {
               ) : (
                 <div className="flex flex-col items-start gap-2">
                   <div className="text-sm text-gray-600">
-                    Connect your Google account to select a spreadsheet containing your leads.
+                    Connect your Gmail account to send outreach emails directly from your mailbox.
                   </div>
                   <a 
                     href={`${API_BASE}/auth/google`}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition"
+                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition"
                   >
-                    Connect Google
+                    Connect Gmail
                   </a>
                 </div>
               )}
@@ -145,119 +163,62 @@ export default function SettingsPage() {
           {/* Daily Send Limit */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Daily Send Limit
+              Gmail Daily Send Limit
             </label>
-            <div className="text-lg text-gray-900">{dailyLimit} emails per day</div>
+            <div className="text-lg text-gray-900 font-semibold">{dailyLimit} emails per day</div>
+            <p className="text-xs text-gray-500 mb-2">Recommended limit: 50 for new accounts, up to 500 for aged accounts.</p>
             <input
               type="range"
               min="10"
               max="500"
               value={dailyLimit}
               onChange={(e) => setDailyLimit(parseInt(e.target.value))}
-              className="w-full mt-2"
+              className="w-full mt-2 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
             />
           </div>
 
           {/* Send Delay */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Send Delay
+              Delay Between Emails
             </label>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">Min Delay:</label>
-                <input
-                  type="number"
-                  value={minDelay}
-                  onChange={(e) => setMinDelay(parseInt(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <span className="text-xs text-gray-500 mt-1">sec</span>
-              </div>
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">Max Delay:</label>
-                <input
-                  type="number"
-                  value={maxDelay}
-                  onChange={(e) => setMaxDelay(parseInt(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <span className="text-xs text-gray-500 mt-1">sec</span>
-              </div>
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                value={minDelay}
+                onChange={(e) => setMinDelay(parseInt(e.target.value))}
+                className="w-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-600">seconds (Recommended: 60s)</span>
             </div>
           </div>
 
-          {/* Follow-Up Settings */}
+          <div className="border-t border-gray-200 pt-6"></div>
+
+          {/* Follow-Up Settings (Read-only for now) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Follow-Up Settings
+              Follow-Up Interval
             </label>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-gray-700">Follow-Up After:</span>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="number"
-                    value={followUpAfter}
-                    onChange={(e) => setFollowUpAfter(parseInt(e.target.value))}
-                    className="w-20 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <span className="text-gray-600">days</span>
-                  <button
-                    onClick={() => setFollowUpAfter(followUpAfter)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      true ? "bg-green-500" : "bg-gray-300"
-                    }`}
-                  >
-                    <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-6" />
-                  </button>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-700">Max Follow-Ups:</span>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="number"
-                    value={maxFollowUps}
-                    onChange={(e) => setMaxFollowUps(parseInt(e.target.value))}
-                    className="w-20 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <button
-                    onClick={() => setMaxFollowUps(maxFollowUps)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      true ? "bg-green-500" : "bg-gray-300"
-                    }`}
-                  >
-                    <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-6" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Agent Status */}
-          <div className="pt-4 border-t border-gray-200">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700">Agent Status</span>
-              <button
-                onClick={() => setAgentStatus(!agentStatus)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  agentStatus ? "bg-green-500" : "bg-gray-300"
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    agentStatus ? "translate-x-6" : "translate-x-1"
-                  }`}
-                />
-              </button>
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                disabled
+                value={followUpAfter}
+                className="w-20 px-3 py-2 border border-gray-100 bg-gray-50 rounded-md text-gray-500"
+              />
+              <span className="text-sm text-gray-600">days after last contact</span>
             </div>
           </div>
 
           {/* Save Button */}
           <div className="pt-4 border-t border-gray-200">
-            <button className="w-full px-4 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors">
-              Save Settings
+            <button 
+              onClick={handleSave}
+              disabled={saving}
+              className={`w-full px-4 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              {saving ? "Saving..." : "Save Settings"}
             </button>
           </div>
         </div>
